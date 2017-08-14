@@ -93,7 +93,7 @@
 
 		}
 
-		private static function genTable($data, $cols, $output)
+		private static function genTable($data, $cols, $output, $columnWidths = array())
 		{
 
 			$rows = array();
@@ -115,9 +115,18 @@
 			}
 
 			$table = new Table($output);
+
+
+
 			$table
 				->setHeaders($cols)
 				->setRows($rows);
+
+
+			if(!empty($columnWidths)){
+				$table->setColumnWidths($columnWidths);
+			}
+
 
 			$table->render();
 
@@ -132,7 +141,7 @@
 
 			$console = new Application('AceProject CLI', '0.0.1 alpha');
 
-			$logo =  <<<TITLE
+			$logo = <<<TITLE
                   _____           _           _   
     /\           |  __ \         (_)         | |  
    /  \   ___ ___| |__) | __ ___  _  ___  ___| |_ 
@@ -144,8 +153,6 @@
 
 
 TITLE;
-
-
 
 
 			/**
@@ -208,19 +215,17 @@ TITLE;
 					$clocks = \Millsoft\AceProject\Timesheet::GetClocks();
 					self::checkError($output);
 
-					if(empty($clocks)){
+					if (empty($clocks)) {
 						$output->writeln("<info>No running clocks</info>");
 						die();
 					}
 
 
-
-					foreach($clocks as &$clock){
+					foreach ($clocks as &$clock) {
 						$clock = Helper::getFormattedArray($clock);
 					}
 
 					$output->write(print_r($clocks, true));
-
 
 
 				});
@@ -236,20 +241,14 @@ TITLE;
 					$id_task = (int)$input->getArgument("taskid");
 					$comment = $input->getOption("comment");
 
-					if($id_task == 0){
+					if ($id_task == 0) {
 						//try to get task id from session file:
-						$ses = self::$session;
-						if(isset($ses['TASK_ID']) && (int)$ses['TASK_ID'] > 0){
-							$id_task = $ses['TASK_ID'];
-						}else{
-							$output->writeln("<error>No task was specified!</error>");
-							die();
-						}
+						$id_task = self::getActiveTaskId($output);
 					}
 
 					$params = array(
-						"taskid" => $id_task,
-						"comments" => !empty($comment) ? utf8_encode($comment) : null
+						"taskid"   => $id_task,
+						"comments" => !empty($comment) ? utf8_encode($comment) : null,
 					);
 					$re = \Millsoft\AceProject\Timesheet::OpenClock($params);
 					self::checkError($output);
@@ -278,22 +277,22 @@ TITLE;
 
 
 					//Get the timesheet_inout_id:
-					if($timesheetinoutid == 0){
+					if ($timesheetinoutid == 0) {
 						//try to get the last id from file:
 						$sess = self::getSession();
-						if(isset($sess['TIMESHEET_INOUT_ID'])){
-							$timesheetinoutid = (int) $sess['TIMESHEET_INOUT_ID'];
+						if (isset($sess['TIMESHEET_INOUT_ID'])) {
+							$timesheetinoutid = (int)$sess['TIMESHEET_INOUT_ID'];
 						}
 					}
 
-					if($timesheetinoutid == 0){
+					if ($timesheetinoutid == 0) {
 						$output->writeln("<error>TIMESHEET_INOUT_ID was not specified</error>");
 					}
 
 
 					$params = array(
 						"timesheetinoutid" => $timesheetinoutid,
-						"comments" => !empty($comment) ? utf8_encode($comment) : null
+						"comments"         => !empty($comment) ? utf8_encode($comment) : null,
 					);
 
 
@@ -303,8 +302,6 @@ TITLE;
 					$re = Helper::getFormattedArray($re);
 					$output->writeln(print_r($re, true));
 				});
-
-
 
 
 			$console->register('tasks:find')
@@ -318,14 +315,14 @@ TITLE;
 
 					$searchstring = $input->getArgument("searchstring");
 
-					if(empty($searchstring)){
+					if (empty($searchstring)) {
 						$output->writeln("<error>No search string was specified!</error>");
 						die();
 					}
 
 					$params = array(
 						"texttosearch" => $searchstring,
-						"forcombo"  => true,
+						"forcombo"     => true,
 					);
 
 
@@ -340,9 +337,6 @@ TITLE;
 
 
 				});
-
-
-
 
 
 			$console->register('tasks:project')
@@ -417,10 +411,79 @@ OUT;
 				});
 
 
+			$console->register('comments:list')
+				->setDescription('List all Comments for a Task')
+				->setDefinition(array(
+					new InputArgument('taskid', InputArgument::OPTIONAL),
+				))
+				->setCode(function (InputInterface $input, OutputInterface $output) {
+
+
+					$id_task = (int)$input->getArgument("taskid");
+					if ($id_task == 0) {
+						//try to get task id from session file:
+						$id_task = self::getActiveTaskId($output);
+					}
+
+					$params = array(
+						"taskids" => $id_task,
+						"plaintext"  => true,
+					);
+
+					$comments = Task::GetTaskComments($params);
+					self::checkError($output);
+
+					if (empty($comments)) {
+						$output->writeln("<info>No Comments found</info>");
+						die();
+					}
+
+					self::genTable($comments, array(
+						"USERNAME"     => "User",
+						"NEW_VALUE" => "Comment",
+					), $output, array(10, 30));
+
+				});
+
+
+			$console->register('comments:add')
+				->setDescription('Add a comment to a task')
+				->setDefinition(array(
+					new InputArgument('comment', InputArgument::REQUIRED),
+					new InputArgument('taskid', InputArgument::OPTIONAL),
+				))
+				->setCode(function (InputInterface $input, OutputInterface $output) {
+
+
+					$comment = $input->getArgument("comment");
+					$id_task = (int)$input->getArgument("taskid");
+
+					if ($id_task == 0) {
+						//try to get task id from session file:
+						$id_task = self::getActiveTaskId($output);
+					}
+
+
+					$params = array(
+						"taskid" => $id_task,
+						"addcomments"  => $comment,
+					);
+
+					$re = Task::SaveTask($params);
+					self::checkError($output);
+
+
+					$output->writeln("<info>Comment added to task {$id_task}</info>");
+
+				});
+
+
+			//*****************************************************//
 			//RUN THE CLI!
 			$console->run();
 
 		}
+
 
 		/**
 		 * Check for errors occured during the API calls, display the error and stop the script
@@ -436,6 +499,25 @@ OUT;
 				die();
 			}
 
+		}
+
+
+		/**
+		 * Get active Task ID (which is stored in the session file)
+		 *
+		 * @param $output
+		 *
+		 * @return mixed
+		 */
+		private static function getActiveTaskId($output)
+		{
+			$ses = self::$session;
+			if (isset($ses['TASK_ID']) && (int)$ses['TASK_ID'] > 0) {
+				return $ses['TASK_ID'];
+			} else {
+				$output->writeln("<error>No task was specified!</error>");
+				die();
+			}
 		}
 
 
