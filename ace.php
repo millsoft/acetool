@@ -9,7 +9,6 @@
 
 	require __DIR__ . '/vendor/autoload.php';
 
-	use Symfony\Component\Console\Application;
 	use Symfony\Component\Console\Input\InputInterface;
 	use Symfony\Component\Console\Output\OutputInterface;
 	use Symfony\Component\Console\Input\InputArgument;
@@ -316,6 +315,10 @@
 					$tasks = Task::GetTasks($params);
 					self::checkError($output);
 
+					if(empty($tasks)){
+						$output->writeln("<info>No tasks with that search string were found</info>");
+						die();
+					}
 
 					self::genTable($tasks, array(
 						"TASK_ID"     => "Id",
@@ -325,6 +328,36 @@
 
 				});
 
+
+
+			$console->register('tasks:add')
+				->setDescription('Add a new task')
+				->setDefinition(array(
+					new InputArgument('projectid', InputArgument::REQUIRED),
+					new InputArgument('summary', InputArgument::REQUIRED),
+
+				))
+				->setCode(function (InputInterface $input, OutputInterface $output) {
+
+
+					$projectid = (int) $input->getArgument("projectid");
+					$summary = $input->getArgument("summary");
+
+
+					$params = array(
+						"projectid" => $projectid,
+						"summary"     => $summary,
+					);
+
+
+					$re = Task::CreateTask($params);
+					self::checkError($output);
+
+					$re = Helper::getFormattedArray($re);
+					$output->writeln(print_r($re, true));
+					
+
+				});
 
 			$console->register('tasks:project')
 				->setDescription('List tasks by Project ID')
