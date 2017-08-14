@@ -139,21 +139,8 @@
 		{
 
 
-			$console = new Application('AceProject CLI', '0.0.1 alpha');
-
-			$logo = <<<TITLE
-                  _____           _           _   
-    /\           |  __ \         (_)         | |  
-   /  \   ___ ___| |__) | __ ___  _  ___  ___| |_ 
-  / /\ \ / __/ _ \  ___/ '__/ _ \| |/ _ \/ __| __|
- / ____ \ (_|  __/ |   | | | (_) | |  __/ (__| |_ 
-/_/    \_\___\___|_|   |_|  \___/| |\___|\___|\__|
-                                _/ |              
-                               |__/               
-
-
-TITLE;
-
+			//$console = new Application('AceProject CLI', '0.0.1 alpha');
+			$console = new AceApp('AceProject CLI', '0.0.1 alpha');
 
 			/**
 			 * LOGIN
