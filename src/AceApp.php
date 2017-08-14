@@ -23,17 +23,14 @@
 LOGO;
 
 
-
 		/**
-		 * MyApp constructor.
+		 * AceApp constructor.
 		 *
-		 * @param KernelInterface $kernel
-		 * @param string          $version
+		 * @param string $name
+		 * @param string $version
 		 */
 		public function __construct( $name = 'UNKNOWN', $version = 'UNKNOWN')
 		{
-
-			//parent::__construct($kernel);
 
 			$this->setName(static::$name);
 			$this->setVersion($version);
