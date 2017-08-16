@@ -417,6 +417,64 @@ OUT;
 
             });
 
+        $console->register('get:activetask')
+            ->setDescription('Get current active task from session.json')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+                $ses = Helper::getSession();
+                if(isset($ses["TASK_ID"])){
+
+                    $params = array(
+                        "taskid" => $ses['TASK_ID'],
+                    );
+
+
+                    $info = Task::GetTaskInfo($ses['TASK_ID']);
+                    Helper::checkError($output);
+
+                    if(empty($info)){
+                        $output->writeln("<error>No task info for this task ID found</error>");
+                    }else{
+
+                        $re = Helper::getFormattedArray($info);
+                        $output->writeln(print_r($re, true));
+
+                    }
+
+                }else{
+                    $output->writeln("<info>No active task found. Use set:task or start a timer to set a new task</info>");
+                }
+            });
+
+
+
+        $console->register('set:activetask')
+            ->setDescription('Sets the active task')
+            ->setDefinition(array(
+                                new InputArgument('taskid', InputArgument::REQUIRED)
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+                $taskid = (int) $input->getArgument("taskid");
+
+
+                if($taskid == 0){
+                    $output->writeln("<error>No task ID was specified</error>");
+                    die();
+                }
+
+                //check if the task exists:
+                $info = Task::GetTaskInfo($taskid);
+                Helper::checkError($output);
+
+                //finally, set the active task:
+                Helper::setSession("TASK_ID", $taskid);
+
+                $output->writeln("<info>Task was set to active.</info>");
+
+            });
+
+
 
 
 
