@@ -1,422 +1,326 @@
 <?php
 
-	namespace Millsoft\AceTool;
+namespace Millsoft\AceTool;
+
+/**
+ * AceProject CLI
+ * By Michael Milawski
+ */
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
+
+
+use Millsoft\AceProject\Users;
+use Millsoft\AceProject\Project;
+use Millsoft\AceProject\Task;
+use Millsoft\AceProject\TimeSheet;
 
-	/**
-	 * AceProject CLI
-	 * By Michael Milawski
-	 */
 
-	require __DIR__ . '/vendor/autoload.php';
+class Ace
+{
 
-	use Symfony\Component\Console\Input\InputInterface;
-	use Symfony\Component\Console\Output\OutputInterface;
-	use Symfony\Component\Console\Input\InputArgument;
-	use Symfony\Component\Console\Input\InputOption;
-	use Symfony\Component\Console\Helper\Table;
+    /**
+     * Initialize the whole CLI system
+     */
+    public static function init ()
+    {
 
-	use Millsoft\AceProject\AceProject;
-	use Millsoft\AceProject\Users;
-	use Millsoft\AceProject\Project;
-	use Millsoft\AceProject\Task;
-	use Millsoft\AceProject\TimeSheet;
+        Helper::initSession();
+        self::initCommands();
 
 
-	class Ace
-	{
+    }
 
-		private static $sessionFile = "session.json";
-		private static $session = array();
+    /**
+     * Initialize all available commands in this CLI tool
+     */
+    private static function initCommands ()
+    {
+
+
+        //$console = new Application('AceProject CLI', '0.0.1 alpha');
+        $console = new AceApp('AceProject CLI', '0.0.1 alpha');
+
+        /**
+         * LOGIN
+         */
+        $console->register('account:login')
+            ->setDescription('Login to your AceProject account')
+            ->setDefinition(array(
+                                new InputArgument('username', InputArgument::REQUIRED, 'Username or E-Mail'),
+                                new InputArgument('password', InputArgument::REQUIRED),
+                                new InputArgument('subdomain', InputArgument::REQUIRED),
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+                $username = $input->getArgument('username');
+                $password = $input->getArgument('password');
+                $subdomain = $input->getArgument('subdomain');
 
-		/**
-		 * Get a local config from session file
-		 * @return array|mixed
-		 */
-		private static function getSession()
-		{
-			if ( !file_exists(self::$sessionFile)) {
-				return array();
-			}
+                Users::login($username, $password, $subdomain, true);
+                Helper::checkError($output);
 
-			$s = file_get_contents(self::$sessionFile);
-			$sess = json_decode($s, true);
+                Helper::setSession("subdomain", $subdomain);
+                $output->writeln('<info>Logged in.</info>');
 
-			return $sess;
-		}
+            });
 
-		/**
-		 * Set local session file config
-		 *
-		 * @param      $key
-		 * @param null $val
-		 */
-		private static function setSession($key, $val = null)
-		{
-			$sess = self::getSession();
+        /**
+         * LOGOUT
+         */
+        $console->register('account:logout')
+            ->setDescription('Logout from your AceProject account')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+                Helper::delSessionKey("subdomain");
+                $output->writeln('Logged off. Use account:login command to login again.');
+            });
+
+        /**
+         * LIST ALL PROJECTS
+         */
+        $console->register('projects')
+            ->setDescription('List all projects')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+                $projects = Project::GetProjects();
+                Helper::checkError($output);
 
-			$sess[$key] = $val;
-			file_put_contents(self::$sessionFile, json_encode($sess));
-		}
+                Helper::genTable($projects, array(
+                    "PROJECT_ID"   => "Id",
+                    "PROJECT_NAME" => "Project Name",
+                ), $output);
 
-		/**
-		 * Delete a key from session file
-		 *
-		 * @param $key
-		 */
-		private static function delSessionKey($key)
-		{
-			$sess = self::getSession();
+            });
 
-			if (isset($sess[$key])) {
-				unset($sess[$key]);
-			}
-			file_put_contents(self::$sessionFile, json_encode($sess));
-		}
+        /**
+         * LIST ALL RUNNING CLOCKS
+         */
+        $console->register('clocks')
+            ->setDescription('List all running clocks')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
+                $clocks = \Millsoft\AceProject\Timesheet::GetClocks();
+                Helper::checkError($output);
 
-		/**
-		 * Initialize the whole CLI system
-		 */
-		public static function init()
-		{
+                if (empty($clocks)) {
+                    $output->writeln("<info>No running clocks</info>");
+                    die();
+                }
 
-			//get subdomain from session file:
-			self::$session = self::getSession();
 
-			if (isset(self::$session['subdomain'])) {
-				AceProject::$subdomain = self::$session['subdomain'];
-			}
+                foreach ($clocks as &$clock) {
+                    $clock = Helper::getFormattedArray($clock);
+                }
 
-			self::initCommands();
+                $output->write(print_r($clocks, true));
 
 
-		}
+            });
 
-		private static function genTable($data, $cols, $output, $columnWidths = array())
-		{
+        $console->register('clock:start')
+            ->setDescription('Start a Clock for a given task')
+            ->setDefinition(array(
+                                new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID. If not specified, the task ID in session.json will be used."),
+                                new InputOption('comment', 'c', InputOption::VALUE_OPTIONAL, "Comment. Will be added to the task comment"),
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
-			$rows = array();
-			$headers = array();
+                $id_task = (int) $input->getArgument("taskid");
+                $comment = $input->getOption("comment");
 
+                if ($id_task == 0) {
+                    //try to get task id from session file:
+                    $id_task = Helper::getActiveTaskId($output);
+                }
 
-			$colMap = array_keys($cols);
+                $params = array(
+                    "taskid"   => $id_task,
+                    "comments" => !empty($comment) ? utf8_encode($comment) : null,
+                );
+                $re = \Millsoft\AceProject\Timesheet::OpenClock($params);
+                Helper::checkError($output);
 
+                //Save current task and timesheet id in session so we don't have to specify a task id later.
+                //We can then simply start the clock by calling "scriptname start"
+                Helper::setSession("TIMESHEET_INOUT_ID", $re->TIMESHEET_INOUT_ID);
+                Helper::setSession("TASK_ID", $id_task);
 
-			foreach ($data as $row) {
-				//$output->writeln($project->PROJECT_ID . "\t" . $project->PROJECT_NAME);
+                $re = Helper::getFormattedArray($re);
+                $output->writeln(print_r($re, true));
+            });
 
-				$r = array();
-				foreach ($colMap as $key) {
-					$r[] = $row->$key;
-				}
 
-				$rows[] = $r;
-			}
+        $console->register('clock:stop')
+            ->setDescription('Stop a running Clock')
+            ->setDefinition(array(
+                                new InputArgument('timesheetid', InputArgument::OPTIONAL, "TIMESHEET_INOUT_ID"),
+                                new InputOption('comment', 'c', InputOption::VALUE_OPTIONAL, "Comment - Will be added to the timesheet entry"),
 
-			$table = new Table($output);
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
+                $timesheetinoutid = (int) $input->getArgument("timesheetid");
+                $comment = $input->getOption("comment");
 
 
-			$table
-				->setHeaders($cols)
-				->setRows($rows);
+                //Get the timesheet_inout_id:
+                if ($timesheetinoutid == 0) {
+                    //try to get the last id from file:
+                    $sess = Helper::getSession();
+                    if (isset($sess[ 'TIMESHEET_INOUT_ID' ])) {
+                        $timesheetinoutid = (int) $sess[ 'TIMESHEET_INOUT_ID' ];
+                    }
+                }
 
+                if ($timesheetinoutid == 0) {
+                    $output->writeln("<error>TIMESHEET_INOUT_ID was not specified</error>");
+                }
 
-			if(!empty($columnWidths)){
-				$table->setColumnWidths($columnWidths);
-			}
 
+                $params = array(
+                    "timesheetinoutid" => $timesheetinoutid,
+                    "comments"         => !empty($comment) ? utf8_encode($comment) : null,
+                );
 
-			$table->render();
 
-		}
+                $re = \Millsoft\AceProject\Timesheet::CloseClock($params);
+                Helper::checkError($output);
 
-		/**
-		 * Initialize all available commands in this CLI tool
-		 */
-		private static function initCommands()
-		{
+                $re = Helper::getFormattedArray($re);
+                $output->writeln(print_r($re, true));
+            });
 
 
-			//$console = new Application('AceProject CLI', '0.0.1 alpha');
-			$console = new AceApp('AceProject CLI', '0.0.1 alpha');
+        $console->register('tasks:find')
+            ->setDescription('Find a Task')
+            ->setDefinition(array(
+                                new InputArgument('searchstring', InputArgument::OPTIONAL, "TIMESHEET_INOUT_ID"),
 
-			/**
-			 * LOGIN
-			 */
-			$console->register('account:login')
-				->setDescription('Login to your AceProject account')
-				->setDefinition(array(
-					new InputArgument('username', InputArgument::REQUIRED, 'Username or E-Mail'),
-					new InputArgument('password', InputArgument::REQUIRED),
-					new InputArgument('subdomain', InputArgument::REQUIRED),
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
-					$username = $input->getArgument('username');
-					$password = $input->getArgument('password');
-					$subdomain = $input->getArgument('subdomain');
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
-					Users::login($username, $password, $subdomain, true);
-					self::checkError($output);
 
-					self::setSession("subdomain", $subdomain);
-					$output->writeln('<info>Logged in.</info>');
+                $searchstring = $input->getArgument("searchstring");
 
-				});
+                if (empty($searchstring)) {
+                    $output->writeln("<error>No search string was specified!</error>");
+                    die();
+                }
 
-			/**
-			 * LOGOUT
-			 */
-			$console->register('account:logout')
-				->setDescription('Logout from your AceProject account')
-				->setCode(function (InputInterface $input, OutputInterface $output) {
-					self::delSessionKey("subdomain");
-					$output->writeln('Logged off. Use account:login command to login again.');
-				});
+                $params = array(
+                    "texttosearch" => $searchstring,
+                    "forcombo"     => true,
+                );
 
-			/**
-			 * LIST ALL PROJECTS
-			 */
-			$console->register('projects')
-				->setDescription('List all projects')
-				->setCode(function (InputInterface $input, OutputInterface $output) {
 
-					$projects = Project::GetProjects();
-					self::checkError($output);
+                $tasks = Task::GetTasks($params);
+                Helper::checkError($output);
 
-					self::genTable($projects, array(
-						"PROJECT_ID"   => "Id",
-						"PROJECT_NAME" => "Project Name",
-					), $output);
+                if (empty($tasks)) {
+                    $output->writeln("<info>No tasks with that search string were found</info>");
+                    die();
+                }
 
-				});
+                Helper::genTable($tasks, array(
+                    "TASK_ID"     => "Id",
+                    "TASK_RESUME" => "Task Resume",
+                ), $output);
 
-			/**
-			 * LIST ALL RUNNING CLOCKS
-			 */
-			$console->register('clocks')
-				->setDescription('List all running clocks')
-				->setCode(function (InputInterface $input, OutputInterface $output) {
 
-					$clocks = \Millsoft\AceProject\Timesheet::GetClocks();
-					self::checkError($output);
+            });
 
-					if (empty($clocks)) {
-						$output->writeln("<info>No running clocks</info>");
-						die();
-					}
 
+        $console->register('tasks:add')
+            ->setDescription('Add a new task')
+            ->setDefinition(array(
+                                new InputArgument('projectid', InputArgument::REQUIRED),
+                                new InputArgument('summary', InputArgument::REQUIRED),
 
-					foreach ($clocks as &$clock) {
-						$clock = Helper::getFormattedArray($clock);
-					}
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
-					$output->write(print_r($clocks, true));
 
+                $projectid = (int) $input->getArgument("projectid");
+                $summary = $input->getArgument("summary");
 
-				});
 
-			$console->register('clock:start')
-				->setDescription('Start a Clock for a given task')
-				->setDefinition(array(
-					new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID. If not specified, the task ID in session.json will be used."),
-					new InputOption('comment', 'c', InputOption::VALUE_OPTIONAL, "Comment. Will be added to the task comment"),
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
+                $params = array(
+                    "projectid" => $projectid,
+                    "summary"   => $summary,
+                );
 
-					$id_task = (int)$input->getArgument("taskid");
-					$comment = $input->getOption("comment");
 
-					if ($id_task == 0) {
-						//try to get task id from session file:
-						$id_task = self::getActiveTaskId($output);
-					}
+                $re = Task::CreateTask($params);
+                Helper::checkError($output);
 
-					$params = array(
-						"taskid"   => $id_task,
-						"comments" => !empty($comment) ? utf8_encode($comment) : null,
-					);
-					$re = \Millsoft\AceProject\Timesheet::OpenClock($params);
-					self::checkError($output);
+                $re = Helper::getFormattedArray($re);
+                $output->writeln(print_r($re, true));
 
-					//Save current task and timesheet id in session so we don't have to specify a task id later.
-					//We can then simply start the clock by calling "scriptname start"
-					self::setSession("TIMESHEET_INOUT_ID", $re->TIMESHEET_INOUT_ID);
-					self::setSession("TASK_ID", $id_task);
 
-					$re = Helper::getFormattedArray($re);
-					$output->writeln(print_r($re, true));
-				});
+            });
 
+        $console->register('tasks:project')
+            ->setDescription('List tasks by Project ID')
+            ->setDefinition(array(
+                                new InputArgument('projectid', InputArgument::REQUIRED),
+                                new InputOption('starred', 's', InputOption::VALUE_OPTIONAL, 'Get only starred tasks'),
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
-			$console->register('clock:stop')
-				->setDescription('Stop a running Clock')
-				->setDefinition(array(
-					new InputArgument('timesheetid', InputArgument::OPTIONAL, "TIMESHEET_INOUT_ID"),
-					new InputOption('comment', 'c', InputOption::VALUE_OPTIONAL, "Comment - Will be added to the timesheet entry"),
+                $project_id = $input->getArgument("projectid");
 
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
+                $params = array(
+                    "projectid" => $project_id,
+                    "forcombo"  => true,
+                );
 
-					$timesheetinoutid = (int)$input->getArgument("timesheetid");
-					$comment = $input->getOption("comment");
+                $starred = $input->getOption("starred");
+                if (!empty($starred)) {
+                    $params[ 'filtermarkedonly' ] = true;
+                }
 
+                $tasks = Task::GetTasks($params);
+                Helper::checkError($output);
 
-					//Get the timesheet_inout_id:
-					if ($timesheetinoutid == 0) {
-						//try to get the last id from file:
-						$sess = self::getSession();
-						if (isset($sess['TIMESHEET_INOUT_ID'])) {
-							$timesheetinoutid = (int)$sess['TIMESHEET_INOUT_ID'];
-						}
-					}
+                if (empty($tasks)) {
+                    $output->writeln("<info>No Tasks found</info>");
+                    die();
+                }
 
-					if ($timesheetinoutid == 0) {
-						$output->writeln("<error>TIMESHEET_INOUT_ID was not specified</error>");
-					}
 
+                Helper::genTable($tasks, array(
+                    "TASK_ID"     => "Id",
+                    "TASK_RESUME" => "Task Resume",
+                ), $output);
 
-					$params = array(
-						"timesheetinoutid" => $timesheetinoutid,
-						"comments"         => !empty($comment) ? utf8_encode($comment) : null,
-					);
 
+            });
 
-					$re = \Millsoft\AceProject\Timesheet::CloseClock($params);
-					self::checkError($output);
 
-					$re = Helper::getFormattedArray($re);
-					$output->writeln(print_r($re, true));
-				});
+        $console->register('task')
+            ->setDescription('Get Task Info by Task ID')
+            ->setDefinition(array(
+                                new InputArgument('taskid', InputArgument::REQUIRED),
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
+                $task_id = $input->getArgument("taskid");
 
-			$console->register('tasks:find')
-				->setDescription('Find a Task')
-				->setDefinition(array(
-					new InputArgument('searchstring', InputArgument::OPTIONAL, "TIMESHEET_INOUT_ID"),
+                $params = array(
+                    "taskid" => $task_id,
+                );
 
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
+                $task = Task::GetTasks($params);
+                Helper::checkError($output);
+                $task = $task[ 0 ];
 
+                $desc = strip_tags($task->TASK_DESC_CREATOR);
 
-					$searchstring = $input->getArgument("searchstring");
-
-					if (empty($searchstring)) {
-						$output->writeln("<error>No search string was specified!</error>");
-						die();
-					}
-
-					$params = array(
-						"texttosearch" => $searchstring,
-						"forcombo"     => true,
-					);
-
-
-					$tasks = Task::GetTasks($params);
-					self::checkError($output);
-
-					if(empty($tasks)){
-						$output->writeln("<info>No tasks with that search string were found</info>");
-						die();
-					}
-
-					self::genTable($tasks, array(
-						"TASK_ID"     => "Id",
-						"TASK_RESUME" => "Task Resume",
-					), $output);
-
-
-				});
-
-
-
-			$console->register('tasks:add')
-				->setDescription('Add a new task')
-				->setDefinition(array(
-					new InputArgument('projectid', InputArgument::REQUIRED),
-					new InputArgument('summary', InputArgument::REQUIRED),
-
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
-
-
-					$projectid = (int) $input->getArgument("projectid");
-					$summary = $input->getArgument("summary");
-
-
-					$params = array(
-						"projectid" => $projectid,
-						"summary"     => $summary,
-					);
-
-
-					$re = Task::CreateTask($params);
-					self::checkError($output);
-
-					$re = Helper::getFormattedArray($re);
-					$output->writeln(print_r($re, true));
-					
-
-				});
-
-			$console->register('tasks:project')
-				->setDescription('List tasks by Project ID')
-				->setDefinition(array(
-					new InputArgument('projectid', InputArgument::REQUIRED),
-					new InputOption('starred', 's', InputOption::VALUE_OPTIONAL, 'Get only starred tasks'),
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
-
-					$project_id = $input->getArgument("projectid");
-
-					$params = array(
-						"projectid" => $project_id,
-						"forcombo"  => true,
-					);
-
-					$starred = $input->getOption("starred");
-					if ( !empty($starred)) {
-						$params['filtermarkedonly'] = true;
-					}
-
-					$tasks = Task::GetTasks($params);
-					self::checkError($output);
-
-					if (empty($tasks)) {
-						$output->writeln("<info>No Tasks found</info>");
-						die();
-					}
-
-
-					self::genTable($tasks, array(
-						"TASK_ID"     => "Id",
-						"TASK_RESUME" => "Task Resume",
-					), $output);
-
-
-				});
-
-
-			$console->register('task')
-				->setDescription('Get Task Info by Task ID')
-				->setDefinition(array(
-					new InputArgument('taskid', InputArgument::REQUIRED),
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
-
-					$task_id = $input->getArgument("taskid");
-
-					$params = array(
-						"taskid" => $task_id,
-					);
-
-					$task = Task::GetTasks($params);
-					self::checkError($output);
-					$task = $task[0];
-
-					$desc = strip_tags($task->TASK_DESC_CREATOR);
-
-					$re = <<<OUT
+                $re = <<<OUT
 {$task->TASK_RESUME}
 ---------------------------------
 Project: <info>{$task->PROJECT_NAME}</info>
@@ -426,123 +330,89 @@ Hours: <info>{$task->ACTUAL_HOURS}</info>
 $desc
 OUT;
 
-					$output->writeln($re);
+                $output->writeln($re);
 
-				});
-
-
-			$console->register('comments:list')
-				->setDescription('List all Comments for a Task')
-				->setDefinition(array(
-					new InputArgument('taskid', InputArgument::OPTIONAL),
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
+            });
 
 
-					$id_task = (int)$input->getArgument("taskid");
-					if ($id_task == 0) {
-						//try to get task id from session file:
-						$id_task = self::getActiveTaskId($output);
-					}
-
-					$params = array(
-						"taskids" => $id_task,
-						"plaintext"  => true,
-					);
-
-					$comments = Task::GetTaskComments($params);
-					self::checkError($output);
-
-					if (empty($comments)) {
-						$output->writeln("<info>No Comments found</info>");
-						die();
-					}
-
-					self::genTable($comments, array(
-						"USERNAME"     => "User",
-						"NEW_VALUE" => "Comment",
-					), $output, array(10, 30));
-
-				});
+        $console->register('comments:list')
+            ->setDescription('List all Comments for a Task')
+            ->setDefinition(array(
+                                new InputArgument('taskid', InputArgument::OPTIONAL),
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
 
-			$console->register('comments:add')
-				->setDescription('Add a comment to a task')
-				->setDefinition(array(
-					new InputArgument('comment', InputArgument::REQUIRED),
-					new InputArgument('taskid', InputArgument::OPTIONAL),
-				))
-				->setCode(function (InputInterface $input, OutputInterface $output) {
+                $id_task = (int) $input->getArgument("taskid");
+                if ($id_task == 0) {
+                    //try to get task id from session file:
+                    $id_task = self::getActiveTaskId($output);
+                }
+
+                $params = array(
+                    "taskids"   => $id_task,
+                    "plaintext" => true,
+                );
+
+                $comments = Task::GetTaskComments($params);
+                Helper::checkError($output);
+
+                if (empty($comments)) {
+                    $output->writeln("<info>No Comments found</info>");
+                    die();
+                }
+
+                Helper::genTable($comments, array(
+                    "USERNAME"  => "User",
+                    "NEW_VALUE" => "Comment",
+                ), $output, array(10, 30));
+
+            });
 
 
-					$comment = $input->getArgument("comment");
-					$id_task = (int)$input->getArgument("taskid");
-
-					if ($id_task == 0) {
-						//try to get task id from session file:
-						$id_task = self::getActiveTaskId($output);
-					}
-
-
-					$params = array(
-						"taskid" => $id_task,
-						"addcomments"  => $comment,
-					);
-
-					$re = Task::SaveTask($params);
-					self::checkError($output);
+        $console->register('comments:add')
+            ->setDescription('Add a comment to a task')
+            ->setDefinition(array(
+                                new InputArgument('comment', InputArgument::REQUIRED),
+                                new InputArgument('taskid', InputArgument::OPTIONAL),
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
 
 
-					$output->writeln("<info>Comment added to task {$id_task}</info>");
+                $comment = $input->getArgument("comment");
+                $id_task = (int) $input->getArgument("taskid");
 
-				});
-
-
-			//*****************************************************//
-			//RUN THE CLI!
-			$console->run();
-
-		}
+                if ($id_task == 0) {
+                    //try to get task id from session file:
+                    $id_task = self::getActiveTaskId($output);
+                }
 
 
-		/**
-		 * Check for errors occured during the API calls, display the error and stop the script
-		 *
-		 * @param $output - Symfony output object
-		 */
-		private static function checkError(&$output)
-		{
-			$error = AceProject::getLastError();
-			if ( !empty($error)) {
-				//some error occured:
-				$output->writeln("<error>" . $error . "</error>");
-				die();
-			}
+                $params = array(
+                    "taskid"      => $id_task,
+                    "addcomments" => $comment,
+                );
 
-		}
+                $re = Task::SaveTask($params);
+                Helper::checkError($output);
 
 
-		/**
-		 * Get active Task ID (which is stored in the session file)
-		 *
-		 * @param $output
-		 *
-		 * @return mixed
-		 */
-		private static function getActiveTaskId($output)
-		{
-			$ses = self::$session;
-			if (isset($ses['TASK_ID']) && (int)$ses['TASK_ID'] > 0) {
-				return $ses['TASK_ID'];
-			} else {
-				$output->writeln("<error>No task was specified!</error>");
-				die();
-			}
-		}
+                $output->writeln("<info>Comment added to task {$id_task}</info>");
+
+            });
 
 
-	}
+        //*****************************************************//
+        //RUN THE CLI!
+        $console->run();
+
+    }
 
 
-	Ace::init();
+
+
+}
+
+
+Ace::init();
 
