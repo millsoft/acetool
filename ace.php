@@ -402,6 +402,24 @@ OUT;
             });
 
 
+
+        $console->register('get:statuses')
+            ->setDescription('Get a list of usable statuses')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+                $statuses = Task::GetTaskStatuses();
+                Helper::checkError($output);
+
+                Helper::genTable($statuses, array(
+                    "COMPLETED_STATUS"   => "Id",
+                    "TASK_STATUS_NAME" => "Status Name",
+                ), $output);
+
+            });
+
+
+
+
         //*****************************************************//
         //RUN THE CLI!
         $console->run();
