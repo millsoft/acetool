@@ -19,6 +19,7 @@ use Millsoft\AceProject\Users;
 use Millsoft\AceProject\Project;
 use Millsoft\AceProject\Task;
 use Millsoft\AceProject\TimeSheet;
+use Millsoft\AceProject\Account;
 
 
 class Ace
@@ -65,6 +66,19 @@ class Ace
                 Helper::checkError($output);
 
                 Helper::setSession("subdomain", $subdomain);
+                $output->writeln('<info>Logged in.</info>');
+
+            });
+
+
+        /**
+         * Get Account Limitations
+         */
+        $console->register('account:limits')
+            ->setDescription('Show current account info')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+                $ac = Account::GetAccountStats();
+                print_r($ac);
                 $output->writeln('<info>Logged in.</info>');
 
             });
@@ -192,6 +206,47 @@ class Ace
 
                 $re = Helper::getFormattedArray($re);
                 $output->writeln(print_r($re, true));
+            });
+
+
+        $console->register('tasks:recent')
+            ->setDescription('Show current account info')
+            ->setDefinition(array(
+                                new InputOption('my', 'm', InputOption::VALUE_OPTIONAL, "Show only tasks assigned to me", 0),
+                                new InputOption('project', 'p', InputOption::VALUE_OPTIONAL, "Show only tasks from a specific project", 0),
+                                new InputOption('count', 'c', InputOption::VALUE_OPTIONAL, "Show a specific amount of tasks", 20),
+                                new InputOption('days', 'd', InputOption::VALUE_OPTIONAL, "Show tasks for the x last days", 30),
+
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+                $assignedToMe = is_null($input->getOption("my")) ? 1 : 0;
+                $projectId = $input->getOption("project");
+                $count = $input->getOption("count");
+                $days = $input->getOption("count");
+
+                $par = array(
+                    "nbdaysmax"             => $days,
+                    "nblatestmodifiedtasks" => $count,
+                    "sortorder"             => "PROJECT_NAME",
+                );
+
+                //TODO: Project Sorting and Assigned Tasks are not working. Need to figure out why
+
+                if($projectId > 0){
+                    $par['projectid'] = $projectId;
+                }
+
+                $par[ "assignedprojectsonly" ] = $assignedToMe;
+
+
+                $tasks = Task::GetRecentTasks($par);
+
+                Helper::genTable($tasks, array(
+                    "TASK_ID"      => "Id",
+                    "PROJECT_NAME" => "Project",
+                    "TASK_RESUME"  => "Task",
+                ), $output);
             });
 
 
@@ -402,7 +457,6 @@ OUT;
             });
 
 
-
         $console->register('get:statuses')
             ->setDescription('Get a list of usable statuses')
             ->setCode(function (InputInterface $input, OutputInterface $output) {
@@ -411,7 +465,7 @@ OUT;
                 Helper::checkError($output);
 
                 Helper::genTable($statuses, array(
-                    "COMPLETED_STATUS"   => "Id",
+                    "COMPLETED_STATUS" => "Id",
                     "TASK_STATUS_NAME" => "Status Name",
                 ), $output);
 
@@ -422,30 +476,29 @@ OUT;
             ->setCode(function (InputInterface $input, OutputInterface $output) {
 
                 $ses = Helper::getSession();
-                if(isset($ses["TASK_ID"])){
+                if (isset($ses[ "TASK_ID" ])) {
 
                     $params = array(
-                        "taskid" => $ses['TASK_ID'],
+                        "taskid" => $ses[ 'TASK_ID' ],
                     );
 
 
-                    $info = Task::GetTaskInfo($ses['TASK_ID']);
+                    $info = Task::GetTaskInfo($ses[ 'TASK_ID' ]);
                     Helper::checkError($output);
 
-                    if(empty($info)){
+                    if (empty($info)) {
                         $output->writeln("<error>No task info for this task ID found</error>");
-                    }else{
+                    } else {
 
                         $re = Helper::getFormattedArray($info);
                         $output->writeln(print_r($re, true));
 
                     }
 
-                }else{
+                } else {
                     $output->writeln("<info>No active task found. Use set:task or start a timer to set a new task</info>");
                 }
             });
-
 
 
         $console->register('set:activetask')
@@ -458,7 +511,7 @@ OUT;
                 $taskid = (int) $input->getArgument("taskid");
 
 
-                if($taskid == 0){
+                if ($taskid == 0) {
                     $output->writeln("<error>No task ID was specified</error>");
                     die();
                 }
@@ -475,16 +528,11 @@ OUT;
             });
 
 
-
-
-
         //*****************************************************//
         //RUN THE CLI!
         $console->run();
 
     }
-
-
 
 
 }

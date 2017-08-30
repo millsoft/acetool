@@ -160,7 +160,9 @@
             foreach ($data as $row) {
                 $r = array();
                 foreach ($colMap as $key) {
-                    $r[] = $row->$key;
+                    $item = $row->$key;
+                    //TODO: Special Characters, eg with umlauts will be displayed wrong. utf8_* functions are not working
+                    $r[] = $item;
                 }
 
                 $rows[] = $r;
