@@ -528,6 +528,52 @@ OUT;
             });
 
 
+        $console->register('set:complete')
+            ->setDescription('Sets a Task as complete')
+            ->setDefinition(array(
+                                new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID - if no id is specified, active task will be used", 0)
+                            ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+
+                $taskid = (int) $input->getArgument("taskid");
+
+
+
+
+                if ($taskid == 0) {
+                    //Try to get current active task because no task was specified
+                    $taskid = (int) Helper::getActiveTaskId($output);
+                    if(!$taskid){
+                        $output->writeln("<error>No task ID was specified or could be found in the active task.</error>");
+                        die();
+                    }
+                }
+
+                //check if the task exists:
+                $statuses = Task::GetTaskStatuses(array(
+                    "projectid" => 10,
+                    //"taskid" => $taskid,
+
+                                              ));
+
+                print_r($statuses);
+                die();
+
+
+
+                Helper::checkError($output);
+
+                //finally, set the active task:
+                Helper::setSession("TASK_ID", $taskid);
+
+                $output->writeln("<info>Task was set to active.</info>");
+
+            });
+
+
+
+
         //*****************************************************//
         //RUN THE CLI!
         $console->run();
@@ -536,7 +582,6 @@ OUT;
 
 
 }
-
 
 Ace::init();
 
