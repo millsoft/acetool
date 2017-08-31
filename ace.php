@@ -528,6 +528,39 @@ OUT;
             });
 
 
+        $console->register('get:work')
+            ->setDescription('Get a week')
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+
+
+                $par = array(
+                    "rowsperpage" => 5,
+                    "pagenumber" => 1,
+                    "timesheetdatefrom" => "2017-08-31"
+                );
+
+                $items = Timesheet::GetMyWorkItems($par);
+
+                foreach($items as $item){
+                    $item = Helper::getFormattedArray($item);
+                    $output->writeln(print_r($item, true));
+                }
+
+                die();
+
+                //check if the task exists:
+                $info = Task::GetTaskInfo($taskid);
+                Helper::checkError($output);
+
+                //finally, set the active task:
+                Helper::setSession("TASK_ID", $taskid);
+
+                $output->writeln("<info>Task was set to active.</info>");
+
+            });
+
+
+
         $console->register('set:complete')
             ->setDescription('Sets a Task as complete')
             ->setDefinition(array(
