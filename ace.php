@@ -560,15 +560,17 @@ OUT;
             });
 
 
-        $console->register('set:complete')
-            ->setDescription('Sets a Task as complete')
+        $console->register('set:status')
+            ->setDescription('Sets a Task as complete "todo", "inprogress", "complete"')
             ->setDefinition(array(
-                                new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID - if no id is specified, active task will be used", 0)
+                                new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID - if no id is specified, active task will be used", 'nope'),
+                                new InputArgument('status', InputArgument::OPTIONAL, "Status. : todo, inprogress, toverify, complete", 0)
                             ))
             ->setCode(function (InputInterface $input, OutputInterface $output) {
 
 
                 $taskid = (int) $input->getArgument("taskid");
+                $set_status = $input->getArgument("status");
 
 
                 if ($taskid == 0) {
@@ -580,6 +582,11 @@ OUT;
                     }
                 }
 
+                if ($set_status == 'nope') {
+                        $output->writeln("<error>You need to specify the status:  todo, inprogress, toverify or complete</error>");
+                        die();
+                }
+
                 $taskInfo = Task::GetTaskInfo($taskid);
                 $project_id = $taskInfo->PROJECT_ID;
 
@@ -588,12 +595,28 @@ OUT;
                                                       "projectid" => $project_id,
                                                   ));
 
+                //print_r($statuses);
                 Helper::checkError($output);
 
+                $mapStatus = array(
+                    "todo" => "To do",
+                    "inprogress" => "In Progress",
+                    "progress" => "In Progress",
+                    "completed" => "Completed",
+                    "done" => "Completed",
+                    "toverify" => "To Verify",
+                    "verify" => "To Verify",
+                );
+
+                if(isset($mapStatus[$set_status])){
+                    $searchStatus = $mapStatus[$set_status];
+                }else{
+                    $output->writeln("<error>Status {$set_status} seems to be invalid!</error>");
+                }
                 //find the Completed Task:
                 $status_id = 0;
                 foreach($statuses as $status){
-                    if($status->TASK_STATUS_NAME == "Completed"){
+                    if($status->TASK_STATUS_NAME ==  $searchStatus ){
                         $status_id = $status->TASK_STATUS_ID;
                     }
                 }
@@ -612,7 +635,7 @@ OUT;
                 //finally, set the active task:
                 Helper::setSession("TASK_ID", $taskid);
 
-                $output->writeln("<info>Task status was set.</info>");
+                $output->writeln("<info>Task status was set to '{$searchStatus}'.</info>");
 
             });
 
