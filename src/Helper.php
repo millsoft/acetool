@@ -14,10 +14,8 @@
 
     class Helper{
 
-        private static $sessionFile = "session.json";
+        private static $sessionFile = __DIR__ . "/../session.json";
         private static $session = array();
-
-
 
         public static function initSession(){
             //get subdomain from session file:

@@ -233,8 +233,8 @@ class Ace
 
                 //TODO: Project Sorting and Assigned Tasks are not working. Need to figure out why
 
-                if($projectId > 0){
-                    $par['projectid'] = $projectId;
+                if ($projectId > 0) {
+                    $par[ 'projectid' ] = $projectId;
                 }
 
                 $par[ "assignedprojectsonly" ] = $assignedToMe;
@@ -534,14 +534,14 @@ OUT;
 
 
                 $par = array(
-                    "rowsperpage" => 5,
-                    "pagenumber" => 1,
+                    "rowsperpage"       => 5,
+                    "pagenumber"        => 1,
                     "timesheetdatefrom" => "2017-08-31"
                 );
 
                 $items = Timesheet::GetMyWorkItems($par);
 
-                foreach($items as $item){
+                foreach ($items as $item) {
                     $item = Helper::getFormattedArray($item);
                     $output->writeln(print_r($item, true));
                 }
@@ -560,7 +560,6 @@ OUT;
             });
 
 
-
         $console->register('set:complete')
             ->setDescription('Sets a Task as complete')
             ->setDefinition(array(
@@ -572,39 +571,50 @@ OUT;
                 $taskid = (int) $input->getArgument("taskid");
 
 
-
-
                 if ($taskid == 0) {
                     //Try to get current active task because no task was specified
                     $taskid = (int) Helper::getActiveTaskId($output);
-                    if(!$taskid){
+                    if (!$taskid) {
                         $output->writeln("<error>No task ID was specified or could be found in the active task.</error>");
                         die();
                     }
                 }
 
+                $taskInfo = Task::GetTaskInfo($taskid);
+                $project_id = $taskInfo->PROJECT_ID;
+
                 //check if the task exists:
                 $statuses = Task::GetTaskStatuses(array(
-                    "projectid" => 10,
-                    //"taskid" => $taskid,
-
-                                              ));
-
-                print_r($statuses);
-                die();
-
-
+                                                      "projectid" => $project_id,
+                                                  ));
 
                 Helper::checkError($output);
+
+                //find the Completed Task:
+                $status_id = 0;
+                foreach($statuses as $status){
+                    if($status->TASK_STATUS_NAME == "Completed"){
+                        $status_id = $status->TASK_STATUS_ID;
+                    }
+                }
+
+                if($status_id == 0){
+                    $output->writeln("<info>No Status ID was found for project {$project_id}</info>");
+                    die();
+                }
+
+                Task::SaveTask(array(
+                    "taskid" => $taskid,
+                    "statusid" => $status_id,
+                    "notify" => false
+                               ));
 
                 //finally, set the active task:
                 Helper::setSession("TASK_ID", $taskid);
 
-                $output->writeln("<info>Task was set to active.</info>");
+                $output->writeln("<info>Task status was set.</info>");
 
             });
-
-
 
 
         //*****************************************************//
