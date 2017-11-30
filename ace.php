@@ -239,7 +239,6 @@ class Ace
 
                 $par[ "assignedprojectsonly" ] = $assignedToMe;
 
-
                 $tasks = Task::GetRecentTasks($par);
 
                 Helper::genTable($tasks, array(
@@ -268,11 +267,15 @@ class Ace
 
                 $params = array(
                     "texttosearch" => $searchstring,
-                    "forcombo"     => true,
+                    "forcombo"     => false,
                 );
 
 
                 $tasks = Task::GetTasks($params);
+
+                //print_r($tasks);
+                //die();
+
                 Helper::checkError($output);
 
                 if (empty($tasks)) {
@@ -282,6 +285,9 @@ class Ace
 
                 Helper::genTable($tasks, array(
                     "TASK_ID"     => "Id",
+                    "PROJECT_NAME"     => "Project",
+                    "TASK_STATUS_NAME" => "Status",
+                    "ACTUAL_HOURS" => "Hours",
                     "TASK_RESUME" => "Task Resume",
                 ), $output);
 
