@@ -153,8 +153,13 @@ class Ace
 
                 $params = array(
                     "taskid"   => $id_task,
-                    "comments" => !empty($comment) ? utf8_encode($comment) : null,
                 );
+
+                if(!empty($comment)){
+                    //User specified a comment, let it pass to the API
+                    $params['comments'] = !empty($comment) ? utf8_encode($comment) : null;
+                }
+
                 $re = \Millsoft\AceProject\Timesheet::OpenClock($params);
                 Helper::checkError($output);
 
@@ -194,11 +199,16 @@ class Ace
                     $output->writeln("<error>TIMESHEET_INOUT_ID was not specified</error>");
                 }
 
-
                 $params = array(
-                    "timesheetinoutid" => $timesheetinoutid,
-                    "comments"         => !empty($comment) ? utf8_encode($comment) : null,
+                    "timesheetinoutid" => $timesheetinoutid
                 );
+
+                if(!empty($comment)){
+                    //User specified a comment, let it pass to the API
+                    $params['comments'] = !empty($comment) ? utf8_encode($comment) : null;
+                }
+
+
 
 
                 $re = \Millsoft\AceProject\Timesheet::CloseClock($params);
