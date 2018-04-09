@@ -127,8 +127,13 @@ header;
 
                 $params = array(
                     "taskid"   => $id_task,
-                    "comments" => !empty($comment) ? utf8_encode($comment) : null,
                 );
+
+                if(!empty($comment)){
+                    //User specified a comment, let it pass to the API
+                    $params['comments'] = !empty($comment) ? utf8_encode($comment) : null;
+                }
+
                 $re = \Millsoft\AceProject\Timesheet::OpenClock($params);
                 Helper::checkError($output);
 
@@ -168,11 +173,16 @@ header;
                     $output->writeln("<error>TIMESHEET_INOUT_ID was not specified</error>");
                 }
 
-
                 $params = array(
-                    "timesheetinoutid" => $timesheetinoutid,
-                    "comments"         => !empty($comment) ? utf8_encode($comment) : null,
+                    "timesheetinoutid" => $timesheetinoutid
                 );
+
+                if(!empty($comment)){
+                    //User specified a comment, let it pass to the API
+                    $params['comments'] = !empty($comment) ? utf8_encode($comment) : null;
+                }
+
+
 
 
                 $re = \Millsoft\AceProject\Timesheet::CloseClock($params);
@@ -213,7 +223,6 @@ header;
 
                 $par[ "assignedprojectsonly" ] = $assignedToMe;
 
-
                 $tasks = Task::GetRecentTasks($par);
 
                 Helper::genTable($tasks, array(
@@ -242,11 +251,15 @@ header;
 
                 $params = array(
                     "texttosearch" => $searchstring,
-                    "forcombo"     => true,
+                    "forcombo"     => false,
                 );
 
 
                 $tasks = Task::GetTasks($params);
+
+                //print_r($tasks);
+                //die();
+
                 Helper::checkError($output);
 
                 if (empty($tasks)) {
@@ -256,6 +269,9 @@ header;
 
                 Helper::genTable($tasks, array(
                     "TASK_ID"     => "Id",
+                    "PROJECT_NAME"     => "Project",
+                    "TASK_STATUS_NAME" => "Status",
+                    "ACTUAL_HOURS" => "Hours",
                     "TASK_RESUME" => "Task Resume",
                 ), $output);
 
@@ -535,15 +551,17 @@ OUT;
             });
 
 
-        $console->register('set:complete')
-            ->setDescription('Sets a Task as complete')
+        $console->register('set:status')
+            ->setDescription('Sets a Task as complete "todo", "inprogress", "complete"')
             ->setDefinition(array(
-                                new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID - if no id is specified, active task will be used", 0)
+                                new InputArgument('taskid', InputArgument::OPTIONAL, "Task ID - if no id is specified, active task will be used", 'nope'),
+                                new InputArgument('status', InputArgument::OPTIONAL, "Status. : todo, inprogress, toverify, complete", 0)
                             ))
             ->setCode(function (InputInterface $input, OutputInterface $output) {
 
 
                 $taskid = (int) $input->getArgument("taskid");
+                $set_status = $input->getArgument("status");
 
 
                 if ($taskid == 0) {
@@ -555,6 +573,11 @@ OUT;
                     }
                 }
 
+                if ($set_status == 'nope') {
+                        $output->writeln("<error>You need to specify the status:  todo, inprogress, toverify or complete</error>");
+                        die();
+                }
+
                 $taskInfo = Task::GetTaskInfo($taskid);
                 $project_id = $taskInfo->PROJECT_ID;
 
@@ -563,12 +586,28 @@ OUT;
                                                       "projectid" => $project_id,
                                                   ));
 
+                //print_r($statuses);
                 Helper::checkError($output);
 
+                $mapStatus = array(
+                    "todo" => "To do",
+                    "inprogress" => "In Progress",
+                    "progress" => "In Progress",
+                    "completed" => "Completed",
+                    "done" => "Completed",
+                    "toverify" => "To Verify",
+                    "verify" => "To Verify",
+                );
+
+                if(isset($mapStatus[$set_status])){
+                    $searchStatus = $mapStatus[$set_status];
+                }else{
+                    $output->writeln("<error>Status {$set_status} seems to be invalid!</error>");
+                }
                 //find the Completed Task:
                 $status_id = 0;
                 foreach($statuses as $status){
-                    if($status->TASK_STATUS_NAME == "Completed"){
+                    if($status->TASK_STATUS_NAME ==  $searchStatus ){
                         $status_id = $status->TASK_STATUS_ID;
                     }
                 }
@@ -587,7 +626,7 @@ OUT;
                 //finally, set the active task:
                 Helper::setSession("TASK_ID", $taskid);
 
-                $output->writeln("<info>Task status was set.</info>");
+                $output->writeln("<info>Task status was set to '{$searchStatus}'.</info>");
 
             });
 
