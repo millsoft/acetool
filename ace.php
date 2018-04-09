@@ -14,6 +14,7 @@ use Millsoft\AceTool\Commands\AccountCommands;
 use Millsoft\AceTool\Commands\ProjectCommands;
 use Millsoft\AceTool\Commands\ClockCommands;
 use Millsoft\AceTool\Commands\TaskCommands;
+use Millsoft\AceTool\Commands\UserCommands;
 
 
 class Ace
@@ -41,6 +42,7 @@ header;
         CommentCommands::load($console);
         ClockCommands::load($console);
         TaskCommands::load($console);
+        UserCommands::load($console);
 
         //Run the app:
         $console->run();
