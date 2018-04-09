@@ -7,7 +7,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Millsoft\\AceTool\\": "src"
+            "Millsoft\\AceTool\\": "src",
+            "Millsoft\\AceTool\\Commands\\": "src/commands"
         }
     },
     "authors": [
@@ -17,5 +18,8 @@
             "homepage": "http://www.millsoft.de",
             "role": "Developer"
         }
-    ]
+    ],
+    "scripts": {
+        "ace": "php ace.php"
+    }
 }

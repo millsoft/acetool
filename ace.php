@@ -19,7 +19,11 @@ use Millsoft\AceProject\Users;
 use Millsoft\AceProject\Project;
 use Millsoft\AceProject\Task;
 use Millsoft\AceProject\TimeSheet;
-use Millsoft\AceProject\Account;
+
+use Millsoft\AceTool\Commands\CommentCommands;
+use Millsoft\AceTool\Commands\AccountCommands;
+use Millsoft\AceTool\Commands\ProjectCommands;
+
 
 
 class Ace
@@ -44,58 +48,24 @@ class Ace
     {
 
 
-        //$console = new Application('AceProject CLI', '0.0.1 alpha');
-        $console = new AceApp('AceProject CLI', '0.0.1 alpha');
+$header = <<<header
 
-        /**
-         * LOGIN
-         */
-        $console->register('account:login')
-            ->setDescription('Login to your AceProject account')
-            ->setDefinition(array(
-                                new InputArgument('username', InputArgument::REQUIRED, 'Username or E-Mail'),
-                                new InputArgument('password', InputArgument::REQUIRED),
-                                new InputArgument('subdomain', InputArgument::REQUIRED),
-                            ))
-            ->setCode(function (InputInterface $input, OutputInterface $output) {
-                $username = $input->getArgument('username');
-                $password = $input->getArgument('password');
-                $subdomain = $input->getArgument('subdomain');
+Version: 0.0.2
+Last Update: 09 April 2018
+(c) 2018 by Michael Milawski
+header;
 
-                Users::login($username, $password, $subdomain, true);
-                Helper::checkError($output);
-
-                Helper::setSession("subdomain", $subdomain);
-                $output->writeln('<info>Logged in.</info>');
-
-            });
+        $console = new AceApp('AceProject CLI', $header);
 
 
-        /**
-         * Get Account Limitations
-         */
-        $console->register('account:limits')
-            ->setDescription('Show current account info')
-            ->setCode(function (InputInterface $input, OutputInterface $output) {
-                $ac = Account::GetAccountStats();
-                print_r($ac);
-                $output->writeln('<info>Logged in.</info>');
+        AccountCommands::load($console);
+        ProjectCommands::load($console);
 
-            });
-
-        /**
-         * LOGOUT
-         */
-        $console->register('account:logout')
-            ->setDescription('Logout from your AceProject account')
-            ->setCode(function (InputInterface $input, OutputInterface $output) {
-                Helper::delSessionKey("subdomain");
-                $output->writeln('Logged off. Use account:login command to login again.');
-            });
-
+     
         /**
          * LIST ALL PROJECTS
          */
+        /*
         $console->register('projects')
             ->setDescription('List all projects')
             ->setCode(function (InputInterface $input, OutputInterface $output) {
@@ -109,6 +79,7 @@ class Ace
                 ), $output);
 
             });
+*/
 
         /**
          * LIST ALL RUNNING CLOCKS
@@ -134,6 +105,9 @@ class Ace
 
 
             });
+
+            //\Millsoft\AceTool\Commands\CommentCommands::load($console);
+            CommentCommands::load($console);
 
         $console->register('clock:start')
             ->setDescription('Start a Clock for a given task')
@@ -388,6 +362,7 @@ OUT;
                 $output->writeln($re);
 
             });
+
 
 
         $console->register('comments:list')
