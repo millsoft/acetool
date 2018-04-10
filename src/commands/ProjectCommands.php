@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 
 use Millsoft\AceProject\Project;
+use Millsoft\AceProject\Users;
 
 use Millsoft\AceTool\Helper;
 
@@ -31,6 +32,27 @@ class ProjectCommands extends Commands{
                 ), $output);
             });
     }
+
+
+    public static function commandGetTotals(){
+        self::$console->register('projects:totals')
+            ->setDescription('Get Project Totals')
+            ->setDefinition(array(
+                    new InputArgument('projectid', InputArgument::REQUIRED, "Project ID"),
+                ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+                $projectid = (int) $input->getArgument("projectid");
+
+                $totals = Users::GetTotals($projectid);
+                Helper::checkError($output);
+
+                $totals = $totals[0];
+
+                $re = Helper::getFormattedArray($totals);
+                $output->writeln(print_r($re, true));
+            });
+    }
+
 
 
 }

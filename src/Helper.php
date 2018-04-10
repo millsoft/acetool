@@ -1,6 +1,6 @@
 <?php
 
-	namespace Millsoft\AceTool;
+namespace Millsoft\AceTool;
 
 	/**
 	 * Class Helper
@@ -33,33 +33,65 @@
 		 *
 		 * @return bool|int|string
 		 */
-		public static function getDate($dateString, $returnFormatted = false, $dateFormat = "Y-m-d - H:i"){
-			$re = '/Date\((?<timestamp>\d.+)\)/';
+        public static function getDate($dateString, $returnFormatted = false, $dateFormat = "Y-m-d - H:i"){
+           $re = '/Date\((?<timestamp>\d.+)\)/';
 
-			preg_match_all($re, $dateString, $matches, PREG_SET_ORDER, 0);
-			if(empty($matches)){
-				return 0;
-			}
+           preg_match_all($re, $dateString, $matches, PREG_SET_ORDER, 0);
+           if(empty($matches)){
+            return 0;
+        }
 
-			$m = $matches[0];
+        $m = $matches[0];
 
-			if(isset($m['timestamp'])){
+        if(isset($m['timestamp'])){
 
-				$ts = $m['timestamp'];
-				if(substr($ts,-3) == '000'){
-					$ts = substr($ts,0, -3);
-				}
+            $ts = $m['timestamp'];
 
-				if($returnFormatted){
-					return date($dateFormat, $ts);
-				}else{
-					return $ts;
-				}
+            if(substr($ts,-3) == '000'){
+             $ts = substr($ts,0, -3);
+         }
 
-			}
+         if($returnFormatted){
+            $d = new \DateTime(gmdate('Y-m-d H:i:s', $ts));
+            $d->add(date_interval_create_from_date_string('-4 hours'));
+            $local_date_time = $d->format($dateFormat);
+            return $local_date_time;
+        }else{
+         return $ts;
+     }
 
-			return 0;
-		}
+ }
+
+ return 0;
+}
+
+
+private static function convertTime($dec)
+{
+
+    $minutes = round($dec * 60,0);
+
+    $d = floor ($minutes / 1440);
+    $h = floor (($minutes - $d * 1440) / 60);
+    $m = $minutes - ($d * 1440) - ($h * 60);
+
+    if($d == 0 && $h ==0){
+        return "{$m}m";
+    }
+
+    if($d == 0){
+        return "{$h}h {$m}m";
+    }
+
+    return "{$d}d {$h}h {$m}m";
+}
+
+    // lz = leading zero
+private static function lz($num)
+{
+    return (strlen($num) < 2) ? "0{$num}" : $num;
+}
+
 
 		/**
 		 * Format an array nicely for a
@@ -69,6 +101,7 @@
 		 */
 		public static function getFormattedArray($arr){
 
+
 			$re = array();
 			foreach($arr as $k=>$v){
 				if(strpos($v, "/Date(") !== false){
@@ -76,11 +109,19 @@
 					$v = self::getDate($v, true);
 				}
 
-				$re[$k] = "<info>" . $v . "</info>";
-			}
+                if(stripos($k, 'HOURS') !== false){
+                    //reformat decimal hours into hh:mm::ss
+                    if($v > 0){
+                        $v = $v . ' (' . self::convertTime($v) . ')';
+                    }
 
-			return $re;
-		}
+                }
+
+                $re[$k] = "<info>" . $v . "</info>";
+            }
+
+            return $re;
+        }
 
         /**
          * Check for errors occured during the API calls, display the error and stop the script
@@ -170,8 +211,8 @@
 
 
             $table
-                ->setHeaders($cols)
-                ->setRows($rows);
+            ->setHeaders($cols)
+            ->setRows($rows);
 
 
             if (!empty($columnWidths)) {

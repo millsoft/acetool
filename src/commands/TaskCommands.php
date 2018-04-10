@@ -368,19 +368,21 @@ OUT;
     }
 
     //Assign a task to a specific user:
-    public function inDevelopmentCommandAssign(){
+    public function commandAssign(){
 
         self::$console->register('tasks:assign')
             ->setDescription('Assign a task to a user (IN DEVELOPMENT!)')
             ->setDefinition(array(
                     new InputArgument('taskid', InputArgument::REQUIRED, "Task ID"),
-                    new InputArgument('email', InputArgument::REQUIRED, "E-Mail of the user")
+                    new InputArgument('user', InputArgument::REQUIRED, "User ID")
                 ))
             ->setCode(function (InputInterface $input, OutputInterface $output) {
                 $taskid = (int) $input->getArgument("taskid");
+                $user = $input->getArgument("user");
 
                 $params = array(
-                    "taskid" => $taskid
+                    "taskid" => $taskid,
+                    "userid" => $user,
                 );
                 $re = Task::AssignUserTask($params);
                 print_r($re);
