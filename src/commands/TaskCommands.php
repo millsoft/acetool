@@ -8,6 +8,7 @@ use Symfony\Component\Console\Input\InputOption;
 
 use Millsoft\AceProject\Project;
 use Millsoft\AceProject\Task;
+use Millsoft\AceProject\Users;
 
 use Millsoft\AceTool\Helper;
 
@@ -376,9 +377,15 @@ OUT;
                     new InputArgument('taskid', InputArgument::REQUIRED, "Task ID"),
                     new InputArgument('user', InputArgument::REQUIRED, "User ID")
                 ))
-            ->setCode(function (InputInterface $input, OutputInterface $output) {
+            ->setCode(function (InputInterface $input, OutputInterface $output){
                 $taskid = (int) $input->getArgument("taskid");
                 $user = $input->getArgument("user");
+
+                if(!is_numeric($user)){
+                    //user didn't enter an id, search for the id by string:
+                    $usr = new UserCommands();
+                    $user = $usr->getUseridFromString($user);
+                }
 
                 $params = array(
                     "taskid" => $taskid,
@@ -393,7 +400,7 @@ OUT;
     }
 
 
-    //Assign a task to a specific user:
+    //Unassign a user from a task:
     public function commandUnAssign(){
 
         self::$console->register('tasks:unassign')
@@ -405,6 +412,12 @@ OUT;
             ->setCode(function (InputInterface $input, OutputInterface $output) {
                 $taskid = (int) $input->getArgument("taskid");
                 $user = $input->getArgument("user");
+
+                if(!is_numeric($user)){
+                    //user didn't enter an id, search for the id by string:
+                    $usr = new UserCommands();
+                    $user = $usr->getUseridFromString($user);
+                }
 
                 $params = array(
                     "taskid" => $taskid,
