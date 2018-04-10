@@ -4,7 +4,7 @@ namespace Millsoft\AceTool;
 
 /**
  * AceProject CLI
- * By Michael Milawski
+ * (c) 2018 by Michael Milawski, www.millsoft.de
  */
 
 require __DIR__ . '/vendor/autoload.php';
@@ -37,6 +37,7 @@ header;
         $console = new AceApp('AceProject CLI', $header);
 
         //Load all the modules that should be available in the console:
+        //Modules are stored in src/commands directory.
         AccountCommands::load($console);
         ProjectCommands::load($console);
         CommentCommands::load($console);
