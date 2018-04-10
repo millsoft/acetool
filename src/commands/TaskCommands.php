@@ -371,7 +371,7 @@ OUT;
     public function commandAssign(){
 
         self::$console->register('tasks:assign')
-            ->setDescription('Assign a task to a user (IN DEVELOPMENT!)')
+            ->setDescription('Assign a task to a user')
             ->setDefinition(array(
                     new InputArgument('taskid', InputArgument::REQUIRED, "Task ID"),
                     new InputArgument('user', InputArgument::REQUIRED, "User ID")
@@ -383,6 +383,8 @@ OUT;
                 $params = array(
                     "taskid" => $taskid,
                     "userid" => $user,
+                    "modifyrecurrency" => 0,
+                    "isassignee" => true,
                 );
                 $re = Task::AssignUserTask($params);
                 print_r($re);
@@ -390,6 +392,31 @@ OUT;
             });
     }
 
+
+    //Assign a task to a specific user:
+    public function commandUnAssign(){
+
+        self::$console->register('tasks:unassign')
+            ->setDescription('Remove assigned user from a task')
+            ->setDefinition(array(
+                    new InputArgument('taskid', InputArgument::REQUIRED, "Task ID"),
+                    new InputArgument('user', InputArgument::REQUIRED, "User ID")
+                ))
+            ->setCode(function (InputInterface $input, OutputInterface $output) {
+                $taskid = (int) $input->getArgument("taskid");
+                $user = $input->getArgument("user");
+
+                $params = array(
+                    "taskid" => $taskid,
+                    "userid" => $user,
+                    "modifyrecurrency" => 0,
+                    "isassignee" => false,
+                );
+                $re = Task::AssignUserTask($params);
+                print_r($re);
+
+            });
+    }
 
 
 }
