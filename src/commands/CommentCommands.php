@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 
 use Millsoft\AceProject\Task;
+use Millsoft\AceTool\Helper;
 
 class CommentCommands extends Commands{
 
@@ -32,6 +33,8 @@ class CommentCommands extends Commands{
                 );
 
                 $comments = Task::GetTaskComments($params);
+                print_r($comments);
+
                 Helper::checkError($output);
 
                 if (empty($comments)) {
@@ -40,8 +43,9 @@ class CommentCommands extends Commands{
                 }
 
                 Helper::genTable($comments, array(
-                    "USERNAME"  => "User",
+                    "FIRST_NAME"  => "User",
                     "NEW_VALUE" => "Comment",
+                    "DATE_CHANGED_DATE" => "Time",
                 ), $output, array(10, 30));
 
             });

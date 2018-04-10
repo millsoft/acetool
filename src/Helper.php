@@ -99,7 +99,7 @@ private static function lz($num)
 		 *
 		 * @return formatted array
 		 */
-		public static function getFormattedArray($arr){
+		public static function getFormattedArray($arr, $colorize = true){
 
 
 			$re = array();
@@ -117,7 +117,12 @@ private static function lz($num)
 
                 }
 
-                $re[$k] = "<info>" . $v . "</info>";
+                if($colorize){
+                   $re[$k] = "<info>" . $v . "</info>";
+                }else{
+                   $re[$k] = $v;
+                }
+
             }
 
             return $re;
@@ -204,8 +209,11 @@ private static function lz($num)
                     $r[] = $item;
                 }
 
+                $r = self::getFormattedArray($r, false);
+
                 $rows[] = $r;
             }
+
 
             $table = new Table($output);
 
