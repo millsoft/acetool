@@ -1,8 +1,7 @@
 <?php
-
+error_reporting(E_ALL ^ E_DEPRECATED);
 
 namespace Millsoft\AceTool\Commands;
-
 
 class Commands{
 
