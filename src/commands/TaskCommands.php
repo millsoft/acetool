@@ -369,7 +369,7 @@ OUT;
     }
 
     //Assign a task to a specific user:
-    public function commandAssign(){
+    public static function commandAssign(){
 
         self::$console->register('tasks:assign')
             ->setDescription('Assign a task to a user')
@@ -401,7 +401,7 @@ OUT;
 
 
     //Unassign a user from a task:
-    public function commandUnAssign(){
+    public static function commandUnAssign(){
 
         self::$console->register('tasks:unassign')
             ->setDescription('Remove assigned user from a task')
