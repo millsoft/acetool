@@ -186,13 +186,15 @@ class TaskCommands extends Commands{
 
                 $desc = strip_tags($task->TASK_DESC_CREATOR);
 
+                $timeWorked = Helper::convertTime($task->ACTUAL_HOURS);
+
                 $re = <<<OUT
 {$task->TASK_RESUME}
 ---------------------------------
 Project: <info>{$task->PROJECT_NAME}</info>
 Status: <info>{$task->TASK_STATUS_NAME}</info>
 Assigned: <info>{$task->ASSIGNED}</info>
-Hours: <info>{$task->ACTUAL_HOURS}</info>
+Time Worked: <info>{$timeWorked}</info>
 $desc
 OUT;
 

@@ -28,8 +28,8 @@ class Ace
         Helper::initSession();
 
         $header = <<<header
-Version: 0.0.3
-Last Update: 10 April 2018
+Version: 0.0.4
+Last Update: 03 May 2018
 (c) 2018 by Michael Milawski
 header;
 

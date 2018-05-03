@@ -24,7 +24,7 @@ class CommentCommands extends Commands{
                 $id_task = (int) $input->getArgument("taskid");
                 if ($id_task == 0) {
                     //try to get task id from session file:
-                    $id_task = self::getActiveTaskId($output);
+                    $id_task = Helper::getActiveTaskId($output);
                 }
 
                 $params = array(
@@ -33,7 +33,6 @@ class CommentCommands extends Commands{
                 );
 
                 $comments = Task::GetTaskComments($params);
-                print_r($comments);
 
                 Helper::checkError($output);
 
@@ -46,7 +45,7 @@ class CommentCommands extends Commands{
                     "FIRST_NAME"  => "User",
                     "NEW_VALUE" => "Comment",
                     "DATE_CHANGED_DATE" => "Time",
-                ), $output, array(10, 30));
+                ), $output, array(10, 40, 20));
 
             });
 
@@ -68,13 +67,14 @@ class CommentCommands extends Commands{
 
                 if ($id_task == 0) {
                     //try to get task id from session file:
-                    $id_task = self::getActiveTaskId($output);
+                    $id_task = Helper::getActiveTaskId($output);
                 }
 
 
                 $params = array(
                     "taskid"      => $id_task,
                     "addcomments" => $comment,
+                    "notify" => false,
                 );
 
                 $re = Task::SaveTask($params);

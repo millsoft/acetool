@@ -9,6 +9,7 @@ namespace Millsoft\AceTool;
 	 */
 
     use Symfony\Component\Console\Helper\Table;
+    use Symfony\Component\Console\Helper\TableStyle;
     use Millsoft\AceProject\AceProject;
 
 
@@ -43,19 +44,22 @@ namespace Millsoft\AceTool;
 
         $m = $matches[0];
 
+
         if(isset($m['timestamp'])){
 
             $ts = $m['timestamp'];
 
-            if(substr($ts,-3) == '000'){
-             $ts = substr($ts,0, -3);
-         }
+            $ts = $ts / 1000;
 
          if($returnFormatted){
-            $d = new \DateTime(gmdate('Y-m-d H:i:s', $ts));
-            $d->add(date_interval_create_from_date_string('-4 hours'));
-            $local_date_time = $d->format($dateFormat);
-            return $local_date_time;
+
+             $d = date("Y-m-d H:i:s", $ts);
+
+             $d = new \DateTime($d);
+             $local_date_time = $d->sub(new \DateInterval('PT6H'));
+             $local_date_time = $local_date_time->format($dateFormat);
+
+             return $local_date_time;
         }else{
          return $ts;
      }
@@ -66,7 +70,7 @@ namespace Millsoft\AceTool;
 }
 
 
-private static function convertTime($dec)
+public static function convertTime($dec)
 {
 
     $minutes = round($dec * 60,0);
@@ -190,13 +194,18 @@ private static function lz($num)
         }
 
 
-
+        /**
+         * Generate a table with data
+         * @param $data - array with the data
+         * @param $cols - column key / name mapping
+         * @param $output - output console object
+         * @param array $columnWidths - min. column widths
+         */
         public static function genTable ($data, $cols, $output, $columnWidths = array())
         {
 
             $rows = array();
             $headers = array();
-
 
             $colMap = array_keys($cols);
 
@@ -215,12 +224,25 @@ private static function lz($num)
             }
 
 
-            $table = new Table($output);
+            // by default, this is based on the default style
+            $tableStyle = new TableStyle();
 
+// customizes the style
+            $tableColor = "cyan";
+            $tableStyle
+                ->setHorizontalBorderChar("<fg={$tableColor}>─</>")
+                ->setVerticalBorderChar("<fg={$tableColor}>│</>")
+                ->setCrossingChar("<fg={$tableColor}>┼</>")
+            ;
+            Table::setStyleDefinition('milmike', $tableStyle);
+
+            $table = new Table($output);
 
             $table
             ->setHeaders($cols)
+            ->setStyle("milmike")
             ->setRows($rows);
+
 
 
             if (!empty($columnWidths)) {

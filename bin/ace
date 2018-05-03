@@ -1,4 +1,4 @@
 #!/bin/sh
 apppath=`dirname "$(realpath $0)"`
 #printf $apppath;
-php $apppath/../ace.php $@
+php $apppath/../ace.php "$@"
