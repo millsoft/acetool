@@ -30,7 +30,7 @@ class AccountCommands extends Commands{
                 $subdomain = $input->getArgument('subdomain');
 
                 //find for the session file and remove it:
-                $session_file = __DIR__ . "/vendor/millsoft/aceproject/.aceproject_" . $subdomain;
+                $session_file = __DIR__ . "/../../vendor/millsoft/aceproject/.aceproject_" . $subdomain;
 
                 if(file_exists($session_file)){
                     unlink($session_file);
