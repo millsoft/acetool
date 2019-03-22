@@ -7,7 +7,18 @@ namespace Millsoft\AceTool;
  * (c) 2019 by Michael Milawski, www.millsoft.de
  */
 
-require __DIR__ . '/vendor/autoload.php';
+$autoload_file        = __DIR__ . "/vendor/autoload.php";
+$autoload_file_global = __DIR__ . "/../../autoload.php";
+
+if (file_exists($autoload_file_global)) {
+    //this script is installed in the composer installation
+    require_once $autoload_file_global;
+} else {
+    if (!file_exists($autoload_file)) {
+        throw new Exception("Composer autoload not found.");
+    }
+    require_once $autoload_file;
+}
 
 use Millsoft\AceTool\Commands\CommentCommands;
 use Millsoft\AceTool\Commands\AccountCommands;
@@ -27,8 +38,15 @@ class Ace
     {
         Helper::initSession();
 
+        $versionFile = __DIR__ . "/version.txt";
+        if(file_exists($versionFile)){
+            $version = file_get_contents($versionFile);
+        }else{
+            $version = '???';
+        }
+
         $header = <<<header
-Version: 1.0.1
+Version: $version
 Last Update: 22 March 2019
 (c) 2019 by Michael Milawski
 header;
