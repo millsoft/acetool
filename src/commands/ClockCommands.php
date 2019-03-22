@@ -23,6 +23,7 @@ class ClockCommands extends Commands{
             ->setCode(function (InputInterface $input, OutputInterface $output) {
 
                 $clocks = Timesheet::GetClocks();
+
                 Helper::checkError($output);
 
                 if (empty($clocks)) {

@@ -4,7 +4,7 @@ namespace Millsoft\AceTool;
 
 /**
  * AceProject CLI
- * (c) 2018 by Michael Milawski, www.millsoft.de
+ * (c) 2019 by Michael Milawski, www.millsoft.de
  */
 
 require __DIR__ . '/vendor/autoload.php';
@@ -28,9 +28,9 @@ class Ace
         Helper::initSession();
 
         $header = <<<header
-Version: 0.0.4
-Last Update: 03 May 2018
-(c) 2018 by Michael Milawski
+Version: 0.0.5
+Last Update: 22 March 2019
+(c) 2019 by Michael Milawski
 header;
 
         //Initialize a new Console AceApp:

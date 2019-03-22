@@ -19,6 +19,7 @@
             "role": "Developer"
         }
     ],
+    "bin": ["bin/ace"],
     "scripts": {
         "ace": "php ace.php"
     }

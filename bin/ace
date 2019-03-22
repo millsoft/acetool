@@ -1,4 +1,3 @@
-#!/bin/sh
-apppath=`dirname "$(realpath $0)"`
-#printf $apppath;
-php $apppath/../ace.php "$@"
+#!/usr/bin/env php
+<?php
+require_once(__DIR__ . "/../ace.php");
