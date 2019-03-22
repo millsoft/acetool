@@ -28,6 +28,8 @@ To use it you need to install php first. I tested the project with php 7 on linu
 
 ### Installing
 
+The easiest installation is using composer:
+`composer global install millsoft/acetool`
 
 Install this project on your machine by downloading the ZIP or use git to clone it.  Then use comoser to install all needed dependencies by executing following command in the project directory:
 
@@ -36,7 +38,9 @@ Install this project on your machine by downloading the ZIP or use git to clone 
 
 ### Running
 
-To run the app simply execute the ace.php with php:
+If you installed this tool with composer, you can type `ace` in your terminal.
+
+Otherwise, simply execute the ace.php with php:
 
     php ace.php
 If you cann the script like that you will see a help page and all available commands / parameters. To get help for a given command add --help to the command, for example:
