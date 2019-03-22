@@ -29,7 +29,9 @@ To use it you need to install php first. I tested the project with php 7 on linu
 ### Installing
 
 The easiest installation is using composer:
-`composer global install millsoft/acetool`
+```
+composer global require millsoft/acetool
+```
 
 Install this project on your machine by downloading the ZIP or use git to clone it.  Then use comoser to install all needed dependencies by executing following command in the project directory:
 

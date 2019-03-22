@@ -1,9 +1,10 @@
 {
     "name": "millsoft/acetool",
     "type": "project",
+    "version" : "1.0.1",
     "require": {
         "millsoft/aceproject": "^0",
-        "symfony/console": "^3.3"
+        "symfony/console": "^4.1"
     },
     "autoload": {
         "psr-4": {
