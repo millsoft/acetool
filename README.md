@@ -67,7 +67,7 @@ I use [SemVer](http://semver.org/) for versioning. For the versions available, s
 
 ## Authors
 
-* **Michael Milawski** - *Initial work* - [Millsoft](http://www.millsoft.de)
+* **Michael Milawski** - *Initial work* - [MilMike](https://www.milmike.com)
 
 
 

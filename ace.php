@@ -4,7 +4,7 @@ namespace Millsoft\AceTool;
 
 /**
  * AceProject CLI
- * (c) 2019 by Michael Milawski, www.millsoft.de
+ * (c) 2019 by Michael Milawski.
  */
 
 $autoload_file        = __DIR__ . "/vendor/autoload.php";
@@ -27,15 +27,33 @@ use Millsoft\AceTool\Commands\ClockCommands;
 use Millsoft\AceTool\Commands\TaskCommands;
 use Millsoft\AceTool\Commands\UserCommands;
 
+use \Rollbar\Rollbar;
+use \Rollbar\Payload\Level;
 
 class Ace
 {
+
+
+    /**
+     * Enable error logging by Rollbar.
+     */
+    private static function initErrorLogging(){
+
+        Rollbar::init(
+            array(
+                'access_token' => '66edf28d2ae349599b3f24d99c08467e',
+                'environment' => 'production'
+            )
+        );
+
+    }
 
     /**
      * Initialize the whole CLI system
      */
     public static function init ()
     {
+        self::initErrorLogging();
         Helper::initSession();
 
         $versionFile = __DIR__ . "/version.txt";
@@ -47,7 +65,6 @@ class Ace
 
         $header = <<<header
 Version: $version
-Last Update: 22 March 2019
 (c) 2019 by Michael Milawski
 header;
 

@@ -1,10 +1,11 @@
 {
     "name": "millsoft/acetool",
     "type": "project",
-    "version" : "1.0.4",
+    "version" : "1.0.5",
     "require": {
         "millsoft/aceproject": "^0",
-        "symfony/console": "^4.1"
+        "symfony/console": "^4.1",
+        "rollbar/rollbar": "~1.5"
     },
     "autoload": {
         "psr-4": {
@@ -16,7 +17,7 @@
         {
             "name": "Michael Milawski",
             "email": "mm@millsoft.de",
-            "homepage": "http://www.millsoft.de",
+            "homepage": "https://www.milmike.com",
             "role": "Developer"
         }
     ],
