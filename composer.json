@@ -1,7 +1,7 @@
 {
     "name": "millsoft/acetool",
     "type": "project",
-    "version" : "1.0.5",
+    "version" : "1.0.6",
     "require": {
         "millsoft/aceproject": "^0",
         "symfony/console": "^4.1",
